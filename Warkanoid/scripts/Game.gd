@@ -4,6 +4,7 @@ const BALL_SCENE      = preload("res://scenes/Ball.tscn")
 const BRICK_SCENE     = preload("res://scenes/Brick.tscn")
 const POWERUP_SCENE   = preload("res://scenes/PowerUp.tscn")
 const EXPLOSION_SCENE = preload("res://scenes/Explosion.tscn")
+const ENEMY_SCENE     = preload("res://scenes/Enemy.tscn")
 const SCAN_SHADER     = preload("res://shaders/scanlines.gdshader")
 const GRID_SHADER     = preload("res://shaders/grid.gdshader")
 
@@ -27,6 +28,11 @@ const SCREEN_BOTTOM : float = 620.0
 var balls      : Array = []
 var bricks     : Array = []
 var powerups   : Array = []
+var enemies    : Array = []
+
+const ENEMY_MAX           : int   = 3
+const ENEMY_SPAWN_FIRST   : float = 6.0
+var   _enemy_timer        : float = ENEMY_SPAWN_FIRST
 
 var _shake_time : float = 0.0
 var _shake_mag  : float = 0.0
@@ -98,6 +104,7 @@ func _process(delta: float) -> void:
 		"playing":
 			_move_balls(delta)
 			_check_powerup_pickup()
+			_tick_enemies(delta)
 			_update_powerup_label()
 		"dead", "levelup", "gameover":
 			pass
@@ -140,6 +147,7 @@ func _after_death() -> void:
 	else:
 		_clear_balls()
 		_clear_powerups()
+		_clear_enemies()
 		_cancel_powerup()
 		_spawn_ball()
 		_set_state("waiting")
@@ -148,6 +156,7 @@ func _next_level() -> void:
 	GameManager.level += 1
 	_clear_balls()
 	_clear_powerups()
+	_clear_enemies()
 	_cancel_powerup()
 	_spawn_level()
 	_set_state("waiting")
@@ -278,6 +287,8 @@ func _step_ball(ball, delta: float) -> void:
 
 	# Brick collision
 	_check_ball_bricks(ball)
+	# Enemy collision
+	_check_ball_enemies(ball)
 
 func _check_ball_bricks(ball) -> void:
 	for br in bricks:
@@ -322,6 +333,47 @@ func _check_ball_bricks(ball) -> void:
 			# Flash indestructible
 			br._flash = 0.4
 		break
+
+func _tick_enemies(delta: float) -> void:
+	enemies = enemies.filter(func(e): return is_instance_valid(e) and not e.is_queued_for_deletion())
+	_enemy_timer -= delta
+	if _enemy_timer <= 0.0 and enemies.size() < ENEMY_MAX:
+		_spawn_enemy()
+		_enemy_timer = randf_range(8.0, 14.0)
+
+func _spawn_enemy() -> void:
+	var e = ENEMY_SCENE.instantiate()
+	e.position = Vector2(randf_range(80.0, 720.0), randf_range(90.0, 420.0))
+	add_child(e)
+	enemies.append(e)
+
+func _check_ball_enemies(ball) -> void:
+	var brad : float = 7.0
+	var erad : float = 11.0
+	for e in enemies:
+		if not is_instance_valid(e) or e.is_queued_for_deletion():
+			continue
+		var bpos  : Vector2 = ball.position as Vector2
+		var epos  : Vector2 = (e as Node2D).position
+		var diff  : Vector2 = bpos - epos
+		if diff.length() >= brad + erad:
+			continue
+		# Deflect ball along collision normal
+		var normal : Vector2 = diff.normalized() if diff.length() > 0.001 else Vector2.UP
+		ball.velocity = (ball.velocity as Vector2).bounce(normal)
+		ball.position = epos + normal * (brad + erad + 1.0)
+		(e as Node2D).set("_flash", 1.0)
+		e.queue_free()
+		enemies.erase(e)
+		GameManager.add_score(25 * GameManager.level)
+		_on_bounce(bpos)
+		break
+
+func _clear_enemies() -> void:
+	for e in enemies:
+		if is_instance_valid(e): e.queue_free()
+	enemies.clear()
+	_enemy_timer = ENEMY_SPAWN_FIRST
 
 func _on_bounce(pos: Vector2) -> void:
 	SoundManager.play_bounce()
