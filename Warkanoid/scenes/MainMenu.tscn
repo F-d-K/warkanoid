@@ -1,0 +1,163 @@
+[gd_scene load_steps=2 format=3 uid="uid://wmainmenu"]
+
+[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1"]
+
+[node name="MainMenu" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Background" type="Node2D" parent="."]
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 1
+
+[node name="DimLeft" type="ColorRect" parent="UI"]
+offset_left   = 0.0
+offset_top    = 0.0
+offset_right  = 308.0
+offset_bottom = 600.0
+color = Color(0, 0, 0, 0.22)
+
+
+[node name="RightPanel" type="ColorRect" parent="UI"]
+offset_left   = 308.0
+offset_top    = 0.0
+offset_right  = 800.0
+offset_bottom = 600.0
+color = Color(0, 0.02, 0.07, 0.52)
+
+[node name="TopBorder" type="ColorRect" parent="UI"]
+offset_left   = 314.0
+offset_top    = 50.0
+offset_right  = 792.0
+offset_bottom = 53.0
+color = Color(0.2, 1, 0.6, 0.75)
+
+[node name="Title" type="Label" parent="UI"]
+offset_left   = 308.0
+offset_top    = 56.0
+offset_right  = 796.0
+offset_bottom = 148.0
+horizontal_alignment = 1
+text = "WARKANOID"
+theme_override_font_sizes/font_size = 60
+theme_override_colors/font_color = Color(0.2, 1, 0.7, 1)
+theme_override_colors/font_shadow_color = Color(0, 0.9, 0.4, 0.5)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 3
+
+[node name="Sub" type="Label" parent="UI"]
+offset_left   = 308.0
+offset_top    = 150.0
+offset_right  = 796.0
+offset_bottom = 175.0
+horizontal_alignment = 1
+text = "PSYCHEDELIC BRICK BREAKER"
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.75, 0.5, 1, 0.88)
+
+[node name="Sep1" type="ColorRect" parent="UI"]
+offset_left   = 314.0
+offset_top    = 184.0
+offset_right  = 792.0
+offset_bottom = 187.0
+color = Color(0.2, 1, 0.6, 0.38)
+
+[node name="HiHeader" type="Label" parent="UI"]
+offset_left   = 308.0
+offset_top    = 192.0
+offset_right  = 796.0
+offset_bottom = 216.0
+horizontal_alignment = 1
+text = "ALL  TIME  BEST"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.5, 0.85, 1, 0.65)
+
+[node name="HiScore" type="Label" parent="UI"]
+offset_left   = 308.0
+offset_top    = 219.0
+offset_right  = 796.0
+offset_bottom = 261.0
+horizontal_alignment = 1
+text = "0000000"
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_colors/font_shadow_color = Color(1, 0.5, 0, 0.5)
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+
+[node name="Sep2" type="ColorRect" parent="UI"]
+offset_left   = 314.0
+offset_top    = 268.0
+offset_right  = 792.0
+offset_bottom = 271.0
+color = Color(0.2, 1, 0.6, 0.38)
+
+[node name="VBox" type="VBoxContainer" parent="UI"]
+offset_left   = 413.0
+offset_top    = 285.0
+offset_right  = 693.0
+offset_bottom = 500.0
+theme_override_constants/separation = 20
+
+[node name="PlayButton" type="Button" parent="UI/VBox"]
+custom_minimum_size = Vector2(230, 55)
+text = "PLAY"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.1, 1, 0.5, 1)
+
+[node name="OptionsButton" type="Button" parent="UI/VBox"]
+custom_minimum_size = Vector2(230, 55)
+text = "OPTIONS"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.6, 0.85, 1, 1)
+
+[node name="EditorButton" type="Button" parent="UI/VBox"]
+custom_minimum_size = Vector2(230, 55)
+text = "LEVEL EDITOR"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1, 0.75, 0.2, 1)
+
+[node name="QuitButton" type="Button" parent="UI/VBox"]
+custom_minimum_size = Vector2(230, 55)
+text = "QUIT"
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+
+[node name="Sep3" type="ColorRect" parent="UI"]
+offset_left   = 314.0
+offset_top    = 503.0
+offset_right  = 792.0
+offset_bottom = 506.0
+color = Color(0.2, 1, 0.6, 0.38)
+
+[node name="Tagline" type="Label" parent="UI"]
+offset_left   = 308.0
+offset_top    = 511.0
+offset_right  = 796.0
+offset_bottom = 532.0
+horizontal_alignment = 1
+text = "© WARKANOID  —  INSERT COIN"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.4, 0.7, 0.5, 0.5)
+
+[node name="BottomBorder" type="ColorRect" parent="UI"]
+offset_left   = 314.0
+offset_top    = 547.0
+offset_right  = 792.0
+offset_bottom = 550.0
+color = Color(0.2, 1, 0.6, 0.75)
+
+[node name="Scanlines" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="ScanRect" type="ColorRect" parent="Scanlines"]
+offset_left   = 0.0
+offset_top    = 0.0
+offset_right  = 800.0
+offset_bottom = 600.0
+mouse_filter  = 2
+
+[connection signal="pressed" from="UI/VBox/PlayButton"    to="." method="_on_play_pressed"]
+[connection signal="pressed" from="UI/VBox/OptionsButton" to="." method="_on_options_pressed"]
+[connection signal="pressed" from="UI/VBox/EditorButton"  to="." method="_on_editor_pressed"]
+[connection signal="pressed" from="UI/VBox/QuitButton"    to="." method="_on_quit_pressed"]

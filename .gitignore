@@ -1,0 +1,11 @@
+# Godot
+.godot/
+*.import
+*.uid
+
+# Build output
+build/
+
+# OS
+.DS_Store
+Thumbs.db

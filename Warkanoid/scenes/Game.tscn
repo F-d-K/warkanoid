@@ -1,0 +1,104 @@
+[gd_scene load_steps=5 format=3 uid="uid://wgame"]
+
+[ext_resource type="Script" path="res://scripts/Game.gd"       id="1"]
+[ext_resource type="Script" path="res://scripts/Background.gd"  id="2"]
+[ext_resource type="PackedScene" uid="uid://wpaddle" path="res://scenes/Paddle.tscn" id="3"]
+
+[node name="Game" type="Node2D"]
+script = ExtResource("1")
+
+[node name="Background" type="Node2D" parent="."]
+script = ExtResource("2")
+
+[node name="BricksLayer" type="Node2D" parent="."]
+
+[node name="Paddle" parent="." instance=ExtResource("3")]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="ScoreLabel" type="Label" parent="HUD"]
+offset_left   = 10.0
+offset_top    = 8.0
+offset_right  = 250.0
+offset_bottom = 38.0
+text = "SCORE  0"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.2, 1, 0.6, 1)
+
+[node name="HiLabel" type="Label" parent="HUD"]
+offset_left   = 10.0
+offset_top    = 30.0
+offset_right  = 250.0
+offset_bottom = 56.0
+text = "BEST  0"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.8, 1, 0.7)
+
+[node name="LevelLabel" type="Label" parent="HUD"]
+offset_left   = 330.0
+offset_top    = 8.0
+offset_right  = 470.0
+offset_bottom = 38.0
+horizontal_alignment = 1
+text = "LEVEL  1"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+
+[node name="LivesLabel" type="Label" parent="HUD"]
+offset_left   = 570.0
+offset_top    = 8.0
+offset_right  = 790.0
+offset_bottom = 38.0
+horizontal_alignment = 2
+text = "LIVES  3"
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
+
+[node name="MsgLabel" type="Label" parent="HUD"]
+offset_left   = 200.0
+offset_top    = 260.0
+offset_right  = 600.0
+offset_bottom = 310.0
+horizontal_alignment = 1
+text = ""
+theme_override_font_sizes/font_size = 32
+
+[node name="PowerupLabel" type="Label" parent="HUD"]
+offset_left   = 200.0
+offset_top    = 570.0
+offset_right  = 600.0
+offset_bottom = 595.0
+horizontal_alignment = 1
+text = ""
+theme_override_font_sizes/font_size = 15
+
+[node name="Scanlines" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="ScanRect" type="ColorRect" parent="Scanlines"]
+offset_left   = 0.0
+offset_top    = 0.0
+offset_right  = 800.0
+offset_bottom = 600.0
+mouse_filter  = 2
+
+[node name="TopWall" type="ColorRect" parent="HUD"]
+offset_left   = 14.0
+offset_top    = 44.0
+offset_right  = 786.0
+offset_bottom = 48.0
+color = Color(0.2, 1, 0.6, 0.5)
+
+[node name="LeftWall" type="ColorRect" parent="HUD"]
+offset_left   = 10.0
+offset_top    = 44.0
+offset_right  = 14.0
+offset_bottom = 600.0
+color = Color(0.2, 1, 0.6, 0.4)
+
+[node name="RightWall" type="ColorRect" parent="HUD"]
+offset_left   = 786.0
+offset_top    = 44.0
+offset_right  = 790.0
+offset_bottom = 600.0
+color = Color(0.2, 1, 0.6, 0.4)
