@@ -13,17 +13,23 @@ A retro breakout game built with Godot 4.5, featuring hand-crafted pixel-art lev
   - Level 4 — Ghost
   - Level 5 — Galaga fighter
 
-- **Animated perspective grid** — a scrolling 3D wireframe background that reacts to ball bounces and brick hits
+- **Animated perspective grid** — a scrolling 3D wireframe background that pulses on ball bounces and brick hits
 
-- **Enemies** — roaming violet diamond entities that deflect the ball on contact and score points
+- **Enemies** — up to 3 roaming violet diamond entities that deflect the ball on contact and score 25 × level points when destroyed
 
-- **Power-ups** — wide paddle, multi-ball, fireball, and slow-ball, dropped randomly by destroyed bricks
+- **Power-ups** — wide paddle, multi-ball, fireball, and slow-ball, dropped randomly (20% chance) by destroyed bricks
 
-- **Level editor** — paint your own levels with 4 brick HP tiers + indestructible bricks, save and test instantly
+- **Level editor** — paint your own 11 × 12 levels with 4 brick HP tiers + indestructible bricks, save and test instantly
 
-- **Scanline overlay** — configurable CRT scanline effect
+- **Screen shake & explosion particles** — camera shake and colorful particle bursts on brick hits, power-up pickups, and ball loss
 
-- **Hi-score persistence** — best score saved between sessions
+- **Ball speed scaling** — ball gets faster each level (+20 px/s per level)
+
+- **Scanline overlay** — configurable CRT scanline effect (intensity and spacing)
+
+- **Options screen** — fullscreen toggle plus scanline intensity and spacing controls
+
+- **Top-5 leaderboard** — best five scores saved between sessions; game-over screen highlights your new entry
 
 ## How to play
 
@@ -37,16 +43,18 @@ Destroy all non-indestructible bricks to advance to the next level. Indestructib
 
 ## Power-ups
 
-| Icon | Name | Effect |
-|---|---|---|
-| W | Wide paddle | Paddle width ×1.5 for 8 seconds |
-| M | Multi-ball | Spawns 2 extra balls |
-| F | Fireball | Ball passes through bricks |
-| S | Slow ball | Ball speed ×0.6 |
+| Label | Name | Effect | Duration |
+|---|---|---|---|
+| WIDE | Wide paddle | Paddle width ×1.5 | 8 s |
+| MULTI | Multi-ball | Spawns 2 extra balls | — |
+| FIRE | Fireball | Ball passes through bricks | 8 s |
+| SLOW | Slow ball | Ball speed ×0.6 | 8 s |
+
+Power-ups fall as pulsing hexagons; catch them with the paddle before they exit the bottom of the screen.
 
 ## Level editor
 
-Accessible from the main menu. Paint bricks with left click, erase with right click, drag to fill. HP values 1–4 set brick color and toughness; **X** places an indestructible brick. Save your level and hit **TEST** to play it immediately.
+Accessible from the main menu. Paint bricks with left click, erase with right click, drag to fill. HP values 1–4 set brick color and toughness; **X** places an indestructible brick. Use **<<** / **>>** to navigate levels, **SAVE** to persist, and **TEST** to play the level immediately.
 
 Custom levels are stored in `user://levels/` and cycle with the built-in ones beyond level 5.
 
