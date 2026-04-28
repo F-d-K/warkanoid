@@ -1,6 +1,8 @@
 extends Node
 
 var score              : int   = 0
+var score_p1           : int   = 0
+var score_p2           : int   = 0
 var lives              : int   = 3
 var level              : int   = 1
 var hi_score           : int   = 0
@@ -17,12 +19,23 @@ func _ready() -> void:
 	_load_settings()
 
 func reset() -> void:
-	score = 0
+	score    = 0
+	score_p1 = 0
+	score_p2 = 0
 	lives = 3
 	level = 1
 
 func add_score(pts: int) -> void:
 	score += pts
+	if score > hi_score:
+		hi_score = score
+
+func add_score_for(pts: int, player_id: int) -> void:
+	if player_id == 2:
+		score_p2 += pts
+	else:
+		score_p1 += pts
+	score = score_p1 + score_p2
 	if score > hi_score:
 		hi_score = score
 

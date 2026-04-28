@@ -3,8 +3,9 @@ extends Node2D
 const RADIUS   : float = 7.0
 const MAX_TRAIL: int   = 28
 
-var velocity   : Vector2 = Vector2.ZERO
-var active     : bool    = false
+var velocity    : Vector2 = Vector2.ZERO
+var active      : bool    = false
+var last_player : int     = 1
 var _time      : float   = 0.0
 var _hue       : float   = 0.0
 var _trail     : Array   = []   # Array of Vector2

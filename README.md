@@ -31,12 +31,25 @@ A retro breakout game built with Godot 4.5, featuring hand-crafted pixel-art lev
 
 - **Top-5 leaderboard** — best five scores saved between sessions; game-over screen highlights your new entry
 
+## Two-player mode
+
+Warkanoid is a 2-player co-op game by default. Both players share the same field and the same ball pool; each has their own paddle, their own score, and a shared life count.
+
+| | Player 1 | Player 2 |
+|---|---|---|
+| **Paddle** | Rainbow hue (cycling), diamond gem | Fixed cyan hue, bracket-end markings, square gem |
+| **Move** | Mouse | ← → arrow keys (or gamepad left stick / D-pad) |
+| **Launch** | Left click | Space / Enter (or gamepad A) |
+
+The **global score** shown in the leaderboard is always P1 + P2.
+
 ## How to play
 
 | Action | Control |
 |---|---|
-| Move paddle | Mouse |
-| Launch ball | Left click |
+| P1 move | Mouse |
+| P2 move | ← → arrow keys or gamepad |
+| Launch (both) | Left click · Space · Enter |
 | Pause / menu | ESC |
 
 Destroy all non-indestructible bricks to advance to the next level. Indestructible bricks (grey, marked **X** in the editor) cannot be broken.

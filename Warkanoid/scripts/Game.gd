@@ -5,6 +5,7 @@ const BRICK_SCENE     = preload("res://scenes/Brick.tscn")
 const POWERUP_SCENE   = preload("res://scenes/PowerUp.tscn")
 const EXPLOSION_SCENE = preload("res://scenes/Explosion.tscn")
 const ENEMY_SCENE     = preload("res://scenes/Enemy.tscn")
+const PADDLE_SCENE    = preload("res://scenes/Paddle.tscn")
 const SCAN_SHADER     = preload("res://shaders/scanlines.gdshader")
 const GRID_SHADER     = preload("res://shaders/grid.gdshader")
 
@@ -13,6 +14,12 @@ const WALL_L : float = 14.0
 const WALL_R : float = 786.0
 const WALL_T : float = 48.0
 const SCREEN_BOTTOM : float = 620.0
+
+# Each player's paddle is confined to its half of the screen
+const P1_MIN_X : float = 59.0    # WALL_L + HALF_W
+const P1_MAX_X : float = 420.0
+const P2_MIN_X : float = 380.0
+const P2_MAX_X : float = 741.0   # WALL_R - HALF_W
 
 @onready var paddle       = $Paddle
 @onready var background   = $Background
@@ -24,6 +31,9 @@ const SCREEN_BOTTOM : float = 620.0
 @onready var msg_lbl    : Label     = $HUD/MsgLabel
 @onready var pw_lbl     : Label     = $HUD/PowerupLabel
 @onready var scan_rect  : ColorRect = $Scanlines/ScanRect
+
+var paddle2           = null
+var _score_p2_lbl     : Label = null
 
 var balls      : Array = []
 var bricks     : Array = []
@@ -43,6 +53,9 @@ var _grid_mat    : ShaderMaterial
 var _grid_pulse  : float = 0.0
 var _mouse_was_pressed : bool = false
 
+# Tracks who last touched the ball that hit a brick/enemy
+var _last_brick_hitter : int = 1
+
 # Powerup state
 var _pw_timer   : float = 0.0
 var _pw_type    : int   = -1
@@ -52,20 +65,20 @@ const PW_MULTI  : int   = 1
 const PW_FIRE   : int   = 2
 const PW_SLOW   : int   = 3
 
-# Wide paddle override
 var _paddle_wide : bool = false
 
 var _state : String = "waiting"   # waiting | playing | dead | levelup | gameover
 
 func _ready() -> void:
 	_base_pos = position
+
 	_scan_mat = ShaderMaterial.new()
 	_scan_mat.shader = SCAN_SHADER
 	_scan_mat.set_shader_parameter("scan_dark",  GameManager.scan_strength * 0.6)
 	_scan_mat.set_shader_parameter("scan_count", GameManager.scan_count_setting)
 	scan_rect.material = _scan_mat
 
-	# Replace plasma with animated grid
+	# Animated grid background
 	for ch in background.get_children():
 		ch.queue_free()
 	_grid_mat = ShaderMaterial.new()
@@ -75,6 +88,25 @@ func _ready() -> void:
 	grid_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	grid_rect.material = _grid_mat
 	background.add_child(grid_rect)
+
+	# P1 paddle: left zone, mouse-driven
+	paddle.player_id = 1
+	paddle.min_x     = P1_MIN_X
+	paddle.max_x     = P1_MAX_X
+
+	# P2 paddle: right zone, keyboard/gamepad-driven
+	paddle2 = PADDLE_SCENE.instantiate()
+	paddle2.player_id = 2
+	paddle2.min_x     = P2_MIN_X
+	paddle2.max_x     = P2_MAX_X
+	paddle2.position  = Vector2(600.0, paddle.position.y)
+	add_child(paddle2)
+
+	# P2 score label added dynamically to the HUD CanvasLayer
+	_score_p2_lbl = Label.new()
+	_score_p2_lbl.add_theme_color_override("font_color", Color.from_hsv(0.55, 0.9, 1.0))
+	_score_p2_lbl.position = score_lbl.position + Vector2(0, 24)
+	$HUD.add_child(_score_p2_lbl)
 
 	GameManager.reset()
 	_spawn_level()
@@ -95,12 +127,13 @@ func _process(delta: float) -> void:
 
 	match _state:
 		"waiting":
-			# Ball follows paddle until launched
+			# Waiting balls follow their respective paddles
 			if balls.size() > 0 and is_instance_valid(balls[0]):
-				var b = balls[0]
-				b.position = paddle.position + Vector2(0, -28)
+				balls[0].position = paddle.position + Vector2(0, -28)
+			if balls.size() > 1 and is_instance_valid(balls[1]):
+				balls[1].position = paddle2.position + Vector2(0, -28)
 			if mouse_clicked or Input.is_action_just_pressed("ui_accept"):
-				_launch_ball()
+				_launch_balls()
 		"playing":
 			_move_balls(delta)
 			_check_powerup_pickup()
@@ -118,7 +151,7 @@ func _set_state(s: String) -> void:
 	match s:
 		"waiting":
 			var lname : String = LevelData.get_level_name(GameManager.level)
-			msg_lbl.text = lname + "  ·  CLICK TO LAUNCH"
+			msg_lbl.text = lname + "  ·  P1:CLICK   P2:←→"
 			msg_lbl.add_theme_color_override("font_color", Color(1, 1, 0.4))
 		"playing":
 			msg_lbl.text = ""
@@ -149,7 +182,7 @@ func _after_death() -> void:
 		_clear_powerups()
 		_clear_enemies()
 		_cancel_powerup()
-		_spawn_ball()
+		_spawn_balls()
 		_set_state("waiting")
 
 func _next_level() -> void:
@@ -210,22 +243,30 @@ func _spawn_level() -> void:
 			bricks.append(br)
 			br.queue_redraw()
 
-	_spawn_ball()
+	_spawn_balls()
 
-func _spawn_ball() -> void:
-	var b = BALL_SCENE.instantiate()
-	b.position = paddle.position + Vector2(0, -28)
-	add_child(b)
-	balls.append(b)
+func _spawn_balls() -> void:
+	var b1 = BALL_SCENE.instantiate()
+	b1.position    = paddle.position + Vector2(0, -28)
+	b1.last_player = 1
+	add_child(b1)
+	balls.append(b1)
 
-func _launch_ball() -> void:
+	var b2 = BALL_SCENE.instantiate()
+	b2.position    = paddle2.position + Vector2(0, -28)
+	b2.last_player = 2
+	add_child(b2)
+	balls.append(b2)
+
+func _launch_balls() -> void:
 	SoundManager.play_launch()
 	_set_state("playing")
-	var angle := randf_range(deg_to_rad(-60), deg_to_rad(-120))
-	if balls.size() > 0 and is_instance_valid(balls[0]):
-		var spd := _ball_speed()
-		balls[0].velocity = Vector2(cos(angle), sin(angle)) * spd
-		balls[0].active   = true
+	for b in balls:
+		if is_instance_valid(b) and not b.active:
+			var angle := randf_range(deg_to_rad(-60), deg_to_rad(-120))
+			var spd   := _ball_speed()
+			b.velocity = Vector2(cos(angle), sin(angle)) * spd
+			b.active   = true
 
 func _ball_speed() -> float:
 	var s := BALL_SPEED_BASE + (GameManager.level - 1) * 20.0
@@ -269,25 +310,41 @@ func _step_ball(ball, delta: float) -> void:
 		ball.velocity.y = absf(ball.velocity.y)
 		_on_bounce(ball.position)
 
-	# Paddle collision
-	var pr   : Rect2   = paddle.rect as Rect2
+	# Paddle 1 collision
+	var pr1  : Rect2   = paddle.rect as Rect2
 	var bvel : Vector2 = ball.velocity as Vector2
-	var bpos2: Vector2 = ball.position as Vector2
+	var bpos : Vector2 = ball.position as Vector2
 	if bvel.y > 0 and \
-	   bpos2.x + 7 > pr.position.x and bpos2.x - 7 < pr.position.x + pr.size.x and \
-	   bpos2.y + 7 >= pr.position.y - 4 and bpos2.y - 7 <= pr.position.y + pr.size.y:
-		var rel      : float = (bpos2.x - (pr.position.x + pr.size.x * 0.5)) / (pr.size.x * 0.5)
+	   bpos.x + 7 > pr1.position.x and bpos.x - 7 < pr1.position.x + pr1.size.x and \
+	   bpos.y + 7 >= pr1.position.y - 4 and bpos.y - 7 <= pr1.position.y + pr1.size.y:
+		var rel      : float = (bpos.x - (pr1.position.x + pr1.size.x * 0.5)) / (pr1.size.x * 0.5)
 		rel = clamp(rel, -0.9, 0.9)
 		var outangle : float = rel * deg_to_rad(65)
 		var spd      : float = bvel.length()
 		ball.velocity        = Vector2(sin(outangle), -abs(cos(outangle))) * spd
-		ball.position.y      = pr.position.y - 7
+		ball.position.y      = pr1.position.y - 7
+		ball.last_player     = 1
 		_on_bounce(ball.position as Vector2)
 		paddle.flash()
 
-	# Brick collision
+	# Paddle 2 collision
+	var pr2 : Rect2 = paddle2.rect as Rect2
+	bvel = ball.velocity as Vector2
+	bpos = ball.position as Vector2
+	if bvel.y > 0 and \
+	   bpos.x + 7 > pr2.position.x and bpos.x - 7 < pr2.position.x + pr2.size.x and \
+	   bpos.y + 7 >= pr2.position.y - 4 and bpos.y - 7 <= pr2.position.y + pr2.size.y:
+		var rel      : float = (bpos.x - (pr2.position.x + pr2.size.x * 0.5)) / (pr2.size.x * 0.5)
+		rel = clamp(rel, -0.9, 0.9)
+		var outangle : float = rel * deg_to_rad(65)
+		var spd      : float = bvel.length()
+		ball.velocity        = Vector2(sin(outangle), -abs(cos(outangle))) * spd
+		ball.position.y      = pr2.position.y - 7
+		ball.last_player     = 2
+		_on_bounce(ball.position as Vector2)
+		paddle2.flash()
+
 	_check_ball_bricks(ball)
-	# Enemy collision
 	_check_ball_enemies(ball)
 
 func _check_ball_bricks(ball) -> void:
@@ -327,10 +384,10 @@ func _check_ball_bricks(ball) -> void:
 		if v.length() > 0:
 			ball.velocity = v.normalized() * spd
 
-		if br.hp < 99:  # not indestructible
+		if br.hp < 99:
+			_last_brick_hitter = ball.last_player
 			br.hit()
 		else:
-			# Flash indestructible
 			br._flash = 0.4
 		break
 
@@ -358,14 +415,13 @@ func _check_ball_enemies(ball) -> void:
 		var diff  : Vector2 = bpos - epos
 		if diff.length() >= brad + erad:
 			continue
-		# Deflect ball along collision normal
 		var normal : Vector2 = diff.normalized() if diff.length() > 0.001 else Vector2.UP
 		ball.velocity = (ball.velocity as Vector2).bounce(normal)
 		ball.position = epos + normal * (brad + erad + 1.0)
 		(e as Node2D).set("_flash", 1.0)
 		e.queue_free()
 		enemies.erase(e)
-		GameManager.add_score(25 * GameManager.level)
+		GameManager.add_score_for(25 * GameManager.level, ball.last_player)
 		_on_bounce(bpos)
 		break
 
@@ -385,10 +441,9 @@ func _on_bounce(pos: Vector2) -> void:
 # ── Brick destroyed ──────────────────────────────────────────────────────────
 
 func _on_brick_destroyed(pos: Vector2, pts: int) -> void:
-	GameManager.add_score(pts)
+	GameManager.add_score_for(pts, _last_brick_hitter)
 	bricks = bricks.filter(func(b): return is_instance_valid(b) and not b.is_queued_for_deletion())
 
-	# Spawn explosion
 	var exp = EXPLOSION_SCENE.instantiate()
 	exp.position = pos
 	exp.col = Color.from_hsv(randf(), 0.9, 1.0)
@@ -398,7 +453,6 @@ func _on_brick_destroyed(pos: Vector2, pts: int) -> void:
 	background.on_brick(pos)
 	_add_shake(2.0)
 
-	# Powerup drop (20%)
 	if randf() < 0.20:
 		var pu = POWERUP_SCENE.instantiate()
 		pu.position = pos
@@ -406,7 +460,6 @@ func _on_brick_destroyed(pos: Vector2, pts: int) -> void:
 		add_child(pu)
 		powerups.append(pu)
 
-	# Check level clear
 	var alive := bricks.filter(func(b): return is_instance_valid(b) and not b.is_queued_for_deletion() and b.hp > 0 and b.hp < 99)
 	if alive.is_empty():
 		_set_state("levelup")
@@ -414,17 +467,22 @@ func _on_brick_destroyed(pos: Vector2, pts: int) -> void:
 # ── Powerup pickup ───────────────────────────────────────────────────────────
 
 func _check_powerup_pickup() -> void:
-	var pr : Rect2 = paddle.rect as Rect2
+	var pr1 : Rect2 = paddle.rect  as Rect2
+	var pr2 : Rect2 = paddle2.rect as Rect2
 	var keep : Array = []
 	for pu in powerups:
 		if not is_instance_valid(pu) or pu.is_queued_for_deletion():
 			continue
 		var pp : Vector2 = pu.position
-		if pp.y > pr.position.y and pp.y < pr.position.y + pr.size.y and \
-		   pp.x > pr.position.x and pp.x < pr.position.x + pr.size.x:
-			_apply_powerup(pu.ptype)
-			pu.queue_free()
-		else:
+		var caught : bool = false
+		for pr in [pr1, pr2]:
+			if pp.y > pr.position.y and pp.y < pr.position.y + pr.size.y and \
+			   pp.x > pr.position.x and pp.x < pr.position.x + pr.size.x:
+				_apply_powerup(pu.ptype)
+				pu.queue_free()
+				caught = true
+				break
+		if not caught:
 			keep.append(pu)
 	powerups = keep
 
@@ -437,15 +495,16 @@ func _apply_powerup(t: int) -> void:
 
 	match t:
 		PW_WIDE:
-			paddle.scale.x = 1.5
+			paddle.scale.x  = 1.5
+			paddle2.scale.x = 1.5
 		PW_MULTI:
-			# Spawn 2 extra balls from existing balls
 			var src_balls := balls.duplicate()
 			for sb in src_balls:
 				if not is_instance_valid(sb): continue
 				for _i in 2:
 					var nb = BALL_SCENE.instantiate()
-					nb.position = sb.position
+					nb.position    = sb.position
+					nb.last_player = sb.last_player
 					var spd := _ball_speed()
 					var a   := randf_range(deg_to_rad(-150), deg_to_rad(-30))
 					nb.velocity = Vector2(cos(a), sin(a)) * spd
@@ -461,7 +520,8 @@ func _tick_powerup(delta: float) -> void:
 
 func _cancel_powerup() -> void:
 	if _pw_type == PW_WIDE:
-		paddle.scale.x = 1.0
+		paddle.scale.x  = 1.0
+		paddle2.scale.x = 1.0
 	_pw_type  = -1
 	_pw_timer = 0.0
 
@@ -496,10 +556,12 @@ func _tick_shake(delta: float) -> void:
 # ── HUD ──────────────────────────────────────────────────────────────────────
 
 func _update_hud() -> void:
-	score_lbl.text = "SCORE  %d"    % GameManager.score
-	lives_lbl.text = "LIVES  %d"    % GameManager.lives
-	level_lbl.text = "LEVEL  %d"    % GameManager.level
-	hi_lbl.text    = "BEST  %d"     % GameManager.hi_score
+	score_lbl.text  = "P1  %d"    % GameManager.score_p1
+	if _score_p2_lbl:
+		_score_p2_lbl.text = "P2  %d" % GameManager.score_p2
+	lives_lbl.text  = "LIVES  %d"  % GameManager.lives
+	level_lbl.text  = "LEVEL  %d"  % GameManager.level
+	hi_lbl.text     = "BEST  %d"   % GameManager.hi_score
 
 # ── Cleanup helpers ──────────────────────────────────────────────────────────
 
