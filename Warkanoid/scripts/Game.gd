@@ -15,11 +15,8 @@ const WALL_R : float = 786.0
 const WALL_T : float = 48.0
 const SCREEN_BOTTOM : float = 620.0
 
-# Each player's paddle is confined to its half of the screen
-const P1_MIN_X : float = 59.0    # WALL_L + HALF_W
-const P1_MAX_X : float = 420.0
-const P2_MIN_X : float = 380.0
-const P2_MAX_X : float = 741.0   # WALL_R - HALF_W
+const PADDLE_MIN_X : float = 59.0   # WALL_L + HALF_W
+const PADDLE_MAX_X : float = 741.0  # WALL_R - HALF_W
 
 @onready var paddle       = $Paddle
 @onready var background   = $Background
@@ -59,13 +56,12 @@ var _last_brick_hitter : int = 1
 # Powerup state
 var _pw_timer   : float = 0.0
 var _pw_type    : int   = -1
+var _pw_player  : int   = 1   # which player caught the active power-up
 const PW_DUR    : float = 8.0
 const PW_WIDE   : int   = 0
 const PW_MULTI  : int   = 1
 const PW_FIRE   : int   = 2
 const PW_SLOW   : int   = 3
-
-var _paddle_wide : bool = false
 
 var _state : String = "waiting"   # waiting | playing | dead | levelup | gameover
 
@@ -89,16 +85,16 @@ func _ready() -> void:
 	grid_rect.material = _grid_mat
 	background.add_child(grid_rect)
 
-	# P1 paddle: left zone, mouse-driven
+	# P1 paddle: full width, mouse-driven
 	paddle.player_id = 1
-	paddle.min_x     = P1_MIN_X
-	paddle.max_x     = P1_MAX_X
+	paddle.min_x     = PADDLE_MIN_X
+	paddle.max_x     = PADDLE_MAX_X
 
-	# P2 paddle: right zone, keyboard/gamepad-driven
+	# P2 paddle: full width, keyboard/gamepad-driven
 	paddle2 = PADDLE_SCENE.instantiate()
 	paddle2.player_id = 2
-	paddle2.min_x     = P2_MIN_X
-	paddle2.max_x     = P2_MAX_X
+	paddle2.min_x     = PADDLE_MIN_X
+	paddle2.max_x     = PADDLE_MAX_X
 	paddle2.position  = Vector2(600.0, paddle.position.y)
 	add_child(paddle2)
 
@@ -151,7 +147,7 @@ func _set_state(s: String) -> void:
 	match s:
 		"waiting":
 			var lname : String = LevelData.get_level_name(GameManager.level)
-			msg_lbl.text = lname + "  ·  P1:CLICK   P2:←→"
+			msg_lbl.text = lname + "  ·  P1:CLICK  /  P2:SPACE"
 			msg_lbl.add_theme_color_override("font_color", Color(1, 1, 0.4))
 		"playing":
 			msg_lbl.text = ""
@@ -475,28 +471,34 @@ func _check_powerup_pickup() -> void:
 			continue
 		var pp : Vector2 = pu.position
 		var caught : bool = false
-		for pr in [pr1, pr2]:
-			if pp.y > pr.position.y and pp.y < pr.position.y + pr.size.y and \
-			   pp.x > pr.position.x and pp.x < pr.position.x + pr.size.x:
-				_apply_powerup(pu.ptype)
-				pu.queue_free()
-				caught = true
-				break
+		if pp.y > pr1.position.y and pp.y < pr1.position.y + pr1.size.y and \
+		   pp.x > pr1.position.x and pp.x < pr1.position.x + pr1.size.x:
+			_apply_powerup(pu.ptype, 1)
+			pu.queue_free()
+			caught = true
+		elif pp.y > pr2.position.y and pp.y < pr2.position.y + pr2.size.y and \
+		     pp.x > pr2.position.x and pp.x < pr2.position.x + pr2.size.x:
+			_apply_powerup(pu.ptype, 2)
+			pu.queue_free()
+			caught = true
 		if not caught:
 			keep.append(pu)
 	powerups = keep
 
-func _apply_powerup(t: int) -> void:
-	_pw_type  = t
-	_pw_timer = PW_DUR
+func _apply_powerup(t: int, player_id: int) -> void:
+	_cancel_powerup()   # cancel any previous power-up first
+	_pw_type   = t
+	_pw_timer  = PW_DUR
+	_pw_player = player_id
 	SoundManager.play_powerup()
 	background.on_powerup()
 	_add_shake(3.0)
 
 	match t:
 		PW_WIDE:
-			paddle.scale.x  = 1.5
-			paddle2.scale.x = 1.5
+			# Only the catching player's paddle widens
+			var pw := paddle if player_id == 1 else paddle2
+			pw.scale.x = 1.5
 		PW_MULTI:
 			var src_balls := balls.duplicate()
 			for sb in src_balls:
@@ -520,8 +522,8 @@ func _tick_powerup(delta: float) -> void:
 
 func _cancel_powerup() -> void:
 	if _pw_type == PW_WIDE:
-		paddle.scale.x  = 1.0
-		paddle2.scale.x = 1.0
+		var pw := paddle if _pw_player == 1 else paddle2
+		pw.scale.x = 1.0
 	_pw_type  = -1
 	_pw_timer = 0.0
 

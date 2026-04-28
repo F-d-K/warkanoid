@@ -38,8 +38,10 @@ Warkanoid is a 2-player co-op game by default. Both players share the same field
 | | Player 1 | Player 2 |
 |---|---|---|
 | **Paddle** | Rainbow hue (cycling), diamond gem | Fixed cyan hue, bracket-end markings, square gem |
-| **Move** | Mouse | ← → arrow keys (or gamepad left stick / D-pad) |
+| **Move** | Mouse (full field) | ← → arrow keys or gamepad (full field) |
 | **Launch** | Left click | Space / Enter (or gamepad A) |
+
+Both paddles can roam the entire screen. Power-ups apply only to the player whose paddle catches them (WIDE widens that paddle only; FIRE and SLOW affect all balls since they are shared).
 
 The **global score** shown in the leaderboard is always P1 + P2.
 
